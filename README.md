@@ -1,5 +1,7 @@
 # TicTacToe Reinforcement Learning
 
+Work with Python 3
+
 ## Instructions
 
 * pip install -r requirements.py
