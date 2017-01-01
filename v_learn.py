@@ -33,8 +33,8 @@ class Learner:
     # - 0.01 seems like the best so far to maximize wins against a random opp.
     epsilon = [0.01]
 
-    # Total number of training rounds per alpha
-    episodes = 90000
+    # Total number of training rounds per alpha per epsilon
+    episodes = 30000
 
     # Number of rounds per test
     testing_rounds = 10
@@ -92,7 +92,7 @@ class Learner:
         'default': lambda: Learner.DRAW_REWARD,
     }
 
-    def __init__(self, debug=False):
+    def __init__(self, game_class, debug=False):
         self.v_table = defaultdict(
             lambda: defaultdict(            # for various values of alpha
                 lambda: defaultdict(        # for various values of epsilon
@@ -101,6 +101,7 @@ class Learner:
         self.win_rates = {alpha: {epsilon: [] for epsilon in self.epsilon}
                           for alpha in self.alpha}
         self.plotting_episodes = []     # X-axis
+        self.game_class = game_class
         self.debug = debug
 
     def play_random_move(self, game):
@@ -126,30 +127,21 @@ class Learner:
     def get_random_starting_player(self):
         return random.choice([self.SELF, self.OPPONENT])
 
-    def get_update_states(self, s):
+    def get_update_states(self, state):
         """
         Returns all states that should be updated given a particular state.
         This returns the same state if Learner does not learn from symmetries.
         Otherwise it returns all symmetries of the given state.
         """
         if not self.learn_from_symmetry:
-            return s
+            return state
         else:
-            return [
-                s,
-                (s[6], s[3], s[0], s[7], s[4], s[1], s[8], s[5], s[2]),
-                (s[8], s[7], s[6], s[5], s[4], s[3], s[2], s[1], s[0]),
-                (s[2], s[5], s[8], s[1], s[4], s[7], s[0], s[3], s[6]),
-                (s[0], s[3], s[6], s[1], s[4], s[7], s[2], s[5], s[8]),
-                (s[6], s[7], s[8], s[3], s[4], s[5], s[0], s[1], s[2]),
-                (s[8], s[5], s[2], s[7], s[4], s[1], s[6], s[3], s[0]),
-                (s[2], s[1], s[0], s[5], s[4], s[3], s[8], s[7], s[6]),
-            ]
+            return self.game_class.all_symmetries(state)
 
     def _update_vtable(self, prev_state, prev_v, game, v_table, alpha):
         state = game.as_feature_vector()
 
-        if game.winner is not None or game.draw:
+        if game.has_ended:
             if game.winner == self.SELF:
                 reward = self.WIN_REWARD
             elif game.winner == self.OPPONENT:
@@ -167,10 +159,10 @@ class Learner:
         return (state, chosen_score)
 
     def train_one_episode(self, v_table, alpha, epsilon):
-        t = TTT()
+        t = self.game_class()
         t.current_player = self.get_random_starting_player()
 
-        while (t.winner is None and not t.draw):
+        while (not t.has_ended):
             prev_state = t.as_feature_vector()
             prev_v = v_table[prev_state]
 
@@ -222,9 +214,9 @@ class Learner:
             if self.debug:
                 print('Testing round {}'.format(i))
 
-            t = TTT()
+            t = self.game_class()
 
-            while (t.winner is None and not t.draw):
+            while (not t.has_ended):
                 if t.current_player == self.SELF:
                     self.play_as_self(t, alpha, epsilon)
                 else:
@@ -250,10 +242,10 @@ class Learner:
         for i in range(rounds):
             print('Round {}'.format(i))
 
-            t = TTT()
+            t = self.game_class()
             t.current_player = self.get_random_starting_player()
 
-            while(t.winner is None and not t.draw):
+            while (not t.has_ended):
                 if t.current_player == self.SELF:
                     self.play_as_self(t, alpha, epsilon)
                 else:
@@ -338,7 +330,7 @@ class Timer:
 
 
 if __name__ == '__main__':
-    l = Learner()
+    l = Learner(game_class=TTT)
 
     print('Training... this may take a while depending on your parameters...')
     with Timer('Training'):

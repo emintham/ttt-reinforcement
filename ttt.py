@@ -29,6 +29,21 @@ class TTT:
 
         return output
 
+    @classmethod
+    def all_symmetries(cls, state):
+        s = state
+
+        return [
+            s,
+            (s[6], s[3], s[0], s[7], s[4], s[1], s[8], s[5], s[2]),
+            (s[8], s[7], s[6], s[5], s[4], s[3], s[2], s[1], s[0]),
+            (s[2], s[5], s[8], s[1], s[4], s[7], s[0], s[3], s[6]),
+            (s[0], s[3], s[6], s[1], s[4], s[7], s[2], s[5], s[8]),
+            (s[6], s[7], s[8], s[3], s[4], s[5], s[0], s[1], s[2]),
+            (s[8], s[5], s[2], s[7], s[4], s[1], s[6], s[3], s[0]),
+            (s[2], s[1], s[0], s[5], s[4], s[3], s[8], s[7], s[6]),
+        ]
+
     @property
     def moves(self):
         return [i
@@ -52,6 +67,10 @@ class TTT:
     @property
     def draw(self):
         return len(self.moves) == 0
+
+    @property
+    def has_ended(self):
+        return self.winner is not None or self.draw
 
     def play(self, pos):
         self.board[pos] = self.current_player
